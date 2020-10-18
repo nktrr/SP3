@@ -5,6 +5,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Vector;
@@ -19,7 +20,10 @@ public class Window extends JFrame {
     private Vector<int[]> points = new Vector<>(2);
     private Vector<int[]> rotatedPoints = new Vector<>();
     private Vector<Integer> rotateCount = new Vector<>();
+    private int zoomForCantor = 0;
     private JSlider smoothSlider;
+    private BufferedImage image;
+
     private boolean isRotated = false;
     private int currentIteration = 0;
     private boolean leftButtomPressed = false;
@@ -82,7 +86,6 @@ public class Window extends JFrame {
         getContentPane().add(panel, "cell 1 1,grow");
         drawPanel.addMouseWheelListener(new MouseWheelListener() {
             public void mouseWheelMoved(MouseWheelEvent e) {
-                System.out.println(e.getX() + "  " + e.getY());
                 boolean isFounded = false;
                 int x = 0;
                 int y = 0;
@@ -139,6 +142,15 @@ public class Window extends JFrame {
             }
         });
 
+        exportButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                 if(points.size()!=0){
+                     FileWritter.save(image);
+                 }
+            }
+        });
+
         JLabel smoothLabel = new JLabel("Уровень сглаживания: 0");
         panel.add(smoothLabel);
 
@@ -172,13 +184,40 @@ public class Window extends JFrame {
         points.add(new int[]{h/3-x,h/3*2-y,h/3*2-x,h/3*2-y});
         points.add(new int[]{h/3*2-x,h/3*2-y,h/3*2-x,h/3-y});
     }
+    private void clearAndInitSierpinsky(){
+        points.clear();
+        points.add(new int[]{0,0,333,-333,666,0});
+    }
+    private void clearAndInitCantor(){
+        points.clear();
+        currentIteration = 0;
+        points.add(new int[]{0,0,666});
+    }
 
     private void moveFractal(int x, int y){
-        for (int[] i : points){
-            i[0]+=x;
-            i[1]+=y;
-            i[2]+=x;
-            i[3]+=y;
+        if (list.getSelectedIndex() !=6 & list.getSelectedIndex()!=7){
+            for (int[] i : points){
+                i[0]+=x;
+                i[1]+=y;
+                i[2]+=x;
+                i[3]+=y;
+            }
+        }
+        else if(list.getSelectedIndex()==6){
+            for (int[] i : points){
+                i[0]+=x;
+                i[1]+=y;
+                i[2]+=x;
+                i[3]+=y;
+                i[4]+=x;
+                i[5]+=y;
+            }
+        }
+        else if(list.getSelectedIndex() == 7){
+            for (int[] i : points){
+                i[0]+=x;
+                i[1]+=y;
+            }
         }
         paintFractal();
     }
@@ -193,6 +232,9 @@ public class Window extends JFrame {
                     case 2: decreaseMinkowski(currentIteration - slider.getValue()); break;
                     case 4: decreaseDragon(currentIteration - slider.getValue()); break;
                     case 5: onlyClear(); calculatePeano(slider.getValue()); break;
+                    case 6: clearAndInitSierpinsky(); calculateSierpinsky(slider.getValue()); break;
+                    case 7: clearAndInitCantor(); calculateCantor(slider.getValue()); break;
+
                 }
             }
             else if(slider.getValue()>currentIteration){
@@ -202,6 +244,8 @@ public class Window extends JFrame {
                     case 2: calculateMinkowski(slider.getValue() - currentIteration); break;
                     case 4: calculateDragon(slider.getValue() - currentIteration); break;
                     case 5: onlyClear(); calculatePeano(slider.getValue()); break;
+                    case 6: calculateSierpinsky(slider.getValue() - currentIteration); break;
+                    case 7: calculateCantor( slider.getValue() - currentIteration); break;
                 }
             }
         }
@@ -221,59 +265,134 @@ public class Window extends JFrame {
                     calculateDragon(c); break;
                 case 5:
                     onlyClear();
-                    calculatePeano(slider.getValue());
+                    calculatePeano(c);
                     break;
+                case 6:
+                    clearAndInitSierpinsky();
+                    calculateSierpinsky(c);
+                    break;
+                case 7:
+                    clearAndInitCantor();
+                    calculateCantor(c);
             }
         }
+        image =  new BufferedImage(drawPanel.getHeight(), drawPanel.getHeight(), BufferedImage.TYPE_INT_ARGB);
+
         Graphics g = this.getGraphics();
+        Graphics g1 = image.getGraphics();
+
         g.setClip(0,106,drawPanel.getHeight(),drawPanel.getHeight());
         g.setColor(Color.white);
         g.fillRect(drawPanel.getX(),drawPanel.getY()+40,drawPanel.getWidth(),drawPanel.getHeight());
+        g1.setClip(7,106,drawPanel.getHeight(),drawPanel.getHeight());
+        g1.setColor(Color.white);
+        g1.fillRect(drawPanel.getX(),drawPanel.getY()+40,drawPanel.getWidth(),drawPanel.getHeight());
         int mX = 100;
         int mY = 467;
         g.setColor(Color.BLACK);
+        g1.setColor(Color.BLACK);
         Vector<int[]> temp;
         if(isRotated) temp = rotatedPoints;
         else temp = points;
-        for(int[] i : temp){
-            g.drawLine(i[0] + mX, i[1] + mY, i[2] + mX, i[3] + mY);
+        if (list.getSelectedIndex()!=6 & list.getSelectedIndex() !=7){
+            for(int[] i : temp){
+                g1.drawLine(i[0] + mX, i[1] + mY, i[2] + mX, i[3] + mY);
+                g.drawLine(i[0] + mX, i[1] + mY, i[2] + mX, i[3] + mY);
+            }
+        }
+        if(list.getSelectedIndex() == 6){
+            for (int[] i : temp){
+                System.out.println(i[0] + " " + i[1] + "   " + i[2] + " " + i[3] + "   " + i[4] + " " + i[5]);
+                int[] xp = new int[]{i[0],i[2],i[4]};
+                int[] yp = new int[]{i[1]+500, i[3]+500, i[5]+500};
+                g1.fillPolygon(xp,yp,3);
+                g.fillPolygon(xp,yp,3);
+            }
+        }
+        if (list.getSelectedIndex() == 7){
+            for (int[] i : temp){
+                g1.fillRect(i[0] + mX,i[1]+mY,i[2],10);
+                g.fillRect(i[0] + mX,i[1]+mY,i[2],10);
+            }
         }
     }
 
     private void rotateFractal(int axisX, int axisY, int multiplier){
-        double cos = 0.98480775301;
-        double sin = 0.17364817766 * multiplier;
-        Vector<int[]> newPoints = new Vector<>(points.size());
-        Vector<int []> temp;
-        if(isRotated) temp = rotatedPoints;
-        else temp = points;
-        for (int[] i : temp){
-            int i0 = (int) (cos * (i[0] - axisX) + sin * (i[1] - axisY)) + axisX;
-            int i1 = (int) (cos * (i[1] - axisY) - sin * (i[0] - axisX)) + axisY;
-            int i2 = (int) (cos * (i[2] - axisX) + sin * (i[3] - axisY)) + axisX;
-            int i3 = (int) (cos * (i[3] - axisY) - sin * (i[2] - axisX)) + axisY;
-            newPoints.add(new int[]{i0,i1,i2,i3});
+        if(list.getSelectedIndex()!=5){
+            double cos = 0.98480775301;
+            double sin = 0.17364817766 * multiplier;
+            Vector<int[]> newPoints = new Vector<>(points.size());
+            Vector<int []> temp;
+            if(isRotated) temp = rotatedPoints;
+            else temp = points;
+            for (int[] i : temp){
+                int i0 = (int) (cos * (i[0] - axisX) + sin * (i[1] - axisY)) + axisX;
+                int i1 = (int) (cos * (i[1] - axisY) - sin * (i[0] - axisX)) + axisY;
+                int i2 = (int) (cos * (i[2] - axisX) + sin * (i[3] - axisY)) + axisX;
+                int i3 = (int) (cos * (i[3] - axisY) - sin * (i[2] - axisX)) + axisY;
+                newPoints.add(new int[]{i0,i1,i2,i3});
+            }
+            rotatedPoints = newPoints;
+            isRotated = true;
+            paintFractal();
         }
-        rotatedPoints = newPoints;
-        isRotated = true;
-        paintFractal();
     }
 
     private void scaleFractal(int axisX,int axisY,int type){
-        if(type==-1){
-            for (int[] i : points){
-                i[0]= axisX + (i[0]-axisX)*2;
-                i[1]= axisY + (i[1]-axisY)*2;
-                i[2]= axisX + (i[2]-axisX)*2;
-                i[3]= axisY + (i[3]-axisY)*2;
+        if(list.getSelectedIndex()!=7 & list.getSelectedIndex() !=6){
+            if(type==-1){
+                for (int[] i : points){
+                    i[0]= axisX + (i[0]-axisX)*2;
+                    i[1]= axisY + (i[1]-axisY)*2;
+                    i[2]= axisX + (i[2]-axisX)*2;
+                    i[3]= axisY + (i[3]-axisY)*2;
+                }
+            }
+            else {
+                for (int[] i : points){
+                    i[0]= (int) (axisX + (i[0]-axisX)*0.5);
+                    i[1]= (int) (axisY + (i[1]-axisY)*0.5);
+                    i[2]= (int) (axisX + (i[2]-axisX)*0.5);
+                    i[3]= (int) (axisY + (i[3]-axisY)*0.5);
+                }
+            }
+        }
+        else if(list.getSelectedIndex()!=6){
+            if(type==-1){
+                for (int[] i : points){
+                    i[0]= axisX + (i[0]-axisX)*2;
+                    i[1]= axisY + (i[1]-axisY)*2;
+                    i[2]= i[2]*2;
+                }
+            }
+            else {
+                for (int[] i : points){
+                    i[0]= (int) (axisX + (i[0]-axisX)*0.5);
+                    i[1]= (int) (axisY + (i[1]-axisY)*0.5);
+                    i[2]= i[2]/2;
+                }
             }
         }
         else {
-            for (int[] i : points){
-                i[0]= (int) (axisX + (i[0]-axisX)*0.5);
-                i[1]= (int) (axisY + (i[1]-axisY)*0.5);
-                i[2]= (int) (axisX + (i[2]-axisX)*0.5);
-                i[3]= (int) (axisY + (i[3]-axisY)*0.5);
+            if(type==-1){
+                for (int[] i : points){
+                    i[0]= axisX + (i[0]-axisX)*2;
+                    i[1]= axisY + (i[1]-axisY)*2;
+                    i[2]= axisX + (i[2]-axisX)*2;
+                    i[3]= axisY + (i[3]-axisY)*2;
+                    i[4]= axisX + (i[4]-axisX)*2;
+                    i[5]= axisY + (i[5]-axisY)*2;
+                }
+            }
+            else {
+                for (int[] i : points){
+                    i[0]= (int) (axisX + (i[0]-axisX)*0.5);
+                    i[1]= (int) (axisY + (i[1]-axisY)*0.5);
+                    i[2]= (int) (axisX + (i[2]-axisX)*0.5);
+                    i[3]= (int) (axisY + (i[3]-axisY)*0.5);
+                    i[4]= (int) (axisX + (i[4]-axisX)*0.5);
+                    i[5]= (int) (axisY + (i[5]-axisY)*0.5);
+                }
             }
         }
         paintFractal();
@@ -542,14 +661,28 @@ public class Window extends JFrame {
                 if (m%2 != 0 & n%2 != 1) kf = 8;
                 temp.addAll(getPeanoSample(kf,segment, segment*m*3-mX,drawPanel.getWidth() - mY - segment*n*3));
                 if(m%2 != 1 & n%2 != 1 & n<k-1){
-                    System.out.println("1" + m + " " + n);
                     temp.add(new int[]{temp.get(temp.size()-1)[2], temp.get(temp.size()-1)[3],temp.get(temp.size()-1)[2],
-                    temp.get(temp.size()-1)[3] + segment});
+                    temp.get(temp.size()-1)[3] - segment});
                 }
                 if(m%2 != 0 & n%2 != 0 & n<k-1){
-                    System.out.println("2");
                     temp.add(new int[]{temp.get(temp.size()-1)[2], temp.get(temp.size()-1)[3],temp.get(temp.size()-1)[2],
-                            temp.get(temp.size()-1)[3] + segment});
+                            temp.get(temp.size()-1)[3] - segment});
+                }
+                if(m%2 !=1 & n%2 == 1 & n<k-1){
+                    temp.add(new int[]{temp.get(temp.size()-1)[2], temp.get(temp.size()-1)[3],temp.get(temp.size()-1)[2],
+                            temp.get(temp.size()-1)[3] - segment});
+                }
+                if(n==k-1 & m%2!=1 & m!=k-1){
+                    temp.add(new int[]{temp.get(temp.size()-1)[2], temp.get(temp.size()-1)[3],temp.get(temp.size()-1)[2] + segment,
+                            temp.get(temp.size()-1)[3]});
+                }
+                if(n==0 &  m%2==1){
+                    temp.add(new int[]{temp.get(temp.size()-5)[0], temp.get(temp.size()-5)[1],temp.get(temp.size()-5)[0] + segment,
+                            temp.get(temp.size()-5)[1]});
+                }
+                if(m%2 == 1 & n!=0 & n!=k-1){
+                    temp.add(new int[]{temp.get(temp.size()-6)[0], temp.get(temp.size()-6)[1],temp.get(temp.size()-6)[0],
+                            temp.get(temp.size()-6)[1] + segment});
                 }
 
             }
@@ -578,5 +711,61 @@ public class Window extends JFrame {
             temp.add(new int[]{startX + len/2, startY - len/2,startX + len/2, startY - len/2 - len*2});
         }
         return temp;
+    }
+    private void calculateSierpinsky(int count){
+            //x1
+        //x0    x2   for int[x0,y0,x1,y1,x2,y2]
+
+        for (int i = 0;i<count;i++){
+            Vector<int[]> newTemp = new Vector<>();
+            Vector<int[]> temp;
+            if (isRotated) temp = rotatedPoints;
+            else temp = points;
+            for (int[] i1 : temp){
+                int x0 = i1[0];
+                int y0 = i1[1];
+                int x1 = i1[2];
+                int y1 = i1[3];
+                int x2 = i1[4];
+                int y2 = i1[5];
+                int x01 = (x0 + x1)/2;
+                int y01 = (y0 + y1)/2;
+                int x02 = (x0 + x2)/2;
+                int y02 = (y0 + y2)/2;
+                int x12 = (x1 + x2)/2;
+                int y12 = (y1 + y2)/2;
+                newTemp.add(new int[]{x0,y0,x01,y01,x02,y02});
+                newTemp.add(new int[]{x01,y01,x1,y1,x12,y12});
+                newTemp.add(new int[]{x02,y02,x12,y12,x2,y2});
+            }
+            points = newTemp;
+            if(isRotated) rotatedPoints = newTemp;
+        }
+        currentIteration = slider.getValue();
+        lastForm = 6;
+    }
+    private void calculateCantor(int count){
+
+        //x0y0   x01y01       x11y11      x1y1
+        //int[]{x0,y0,len}
+        for (int i = 0;i<count;i++){
+            Vector<int[]> newTemp = new Vector<>();
+            Vector<int[]> temp;
+            if (isRotated) temp = rotatedPoints;
+            else temp = points;
+            for (int[] i1 : temp){
+                int x0 = i1[0];
+                int y0 = i1[1];
+                int len = i1[2];
+                int x11 = x0 + len/3*2;
+                newTemp.add(new int[]{x0,y0,len/3});
+                newTemp.add(new int[]{x11, y0, len/3});
+            }
+            System.out.println(" ");
+            points = newTemp;
+            if(isRotated) rotatedPoints = newTemp;
+        }
+        currentIteration = slider.getValue();
+        lastForm = 7;
     }
 }
